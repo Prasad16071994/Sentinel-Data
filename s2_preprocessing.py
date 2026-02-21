@@ -1,6 +1,9 @@
 import ee
 import geemap
 
+from google.colab import drive
+drive.mount('/content/drive')
+
 ee.Authenticate()
 ee.Initialize(project='ee-prasad007nr')
 
@@ -27,9 +30,16 @@ s2_data = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')\
          .filterDate(startDate, endDate)\
          .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 10))\
          .map(maskCloudAndShadowsSR)\
+         .select(['B4','B8'])\
          .median().clip(roi)
 
-ndvi = s2_data.select('NDVI')
+ndvi = s2_data.normalizedDifference(['B8', 'B4']).rename('NDVI')
+
+Map= geemap.Map()
+
+Map.addLayer(ndvi, {'min': -1, 'max': 1, 'palette': ['blue', 'white', 'green']},'NDVI')
+Map.centerObject(roi, 10)
+Map
 
 geemap.ee_export_image_to_drive(
     image= ndvi,
